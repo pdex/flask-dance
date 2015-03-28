@@ -50,8 +50,55 @@ class OAuthConsumerMixin(object):
 
 
 class SQLAlchemyStorage(BaseTokenStorage):
+    """
+    Stores and retrieves OAuth tokens using a relational database through
+    the `SQLAlchemy`_ ORM.
+
+    .. _SQLAlchemy: http://www.sqlalchemy.org/
+    """
     def __init__(self, blueprint, model, session,
                  user=None, user_id=None, anon_user=None, cache=None):
+        """
+        Args:
+            blueprint: The Flask-Dance blueprint.
+            model: The SQLAlchemy model class that represents the OAuth token
+                table in the database. At a minimum, it must have a
+                ``provider`` column and a ``token`` column. If tokens are to be
+                associated with individual users in the application, it must
+                also have a ``user`` relationship to your User model.
+                It is recommended, though not required, that your model class
+                inherit from
+                :class:`~flask_dance.consumer.storage.sqla.OAuthConsumerMixin`.
+            session:
+                The :class:`SQLAlchemy session <sqlalchemy.orm.session.Session>`
+                for the database. If you're using `Flask-SQLAlchemy`_, this is
+                ``db.session``.
+            user:
+                If you want OAuth tokens to be associated with individual users
+                in your application, this is a reference to the user that you
+                want to use for the current request. It can be an actual User
+                object, a function that returns a User object, or a proxy to the
+                User object. If you're using `Flask-Login`_, this is
+                :attr:`~flask.ext.login.current_user`.
+            user_id:
+                If you want to pass an identifier for a user instead of an actual
+                User object, use this argument instead. Sometimes it can save
+                a database query or two. If both ``user`` and ``user_id`` are
+                provided, ``user_id`` will take precendence.
+            anon_user:
+                If anonymous users are represented by a class in your application,
+                provide that class here. If you are using `Flask-Login`_,
+                anonymous users are represented by the
+                :class:`flask_login.AnonymousUserMixin` class, but you don't have
+                to provide that -- Flask-Dance treats it as the default.
+            cache:
+                An instance of `Flask-Cache`_. Providing a caching system is
+                highly recommended, but not required.
+
+        .. _Flask-SQLAlchemy: http://pythonhosted.org/Flask-SQLAlchemy/
+        .. _Flask-Login: https://flask-login.readthedocs.org/
+        .. _Flask-Cache: http://pythonhosted.org/Flask-Cache/
+        """
         super(SQLAlchemyStorage, self).__init__(blueprint)
         self.model = model
         self.session = session

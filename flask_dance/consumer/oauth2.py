@@ -76,56 +76,58 @@ class OAuth2ConsumerBlueprint(BaseOAuthConsumerBlueprint):
         :class:`requests_oauthlib.OAuth2Session` construtor, including
         ``**kwargs`` (which is forwarded to
         :class:`~requests_oauthlib.OAuth2Session`).
-        The only arguments that are specific to this class are
-        ``base_url``,
-        ``authorization_url``, ``token_url``,
-        ``login_url``, ``authorized_url``,
-        ``redirect_url``, ``redirect_to``, and ``session_class``.
+        Only the arguments that are relevant to Flask-Dance are documented here.
 
         Args:
-            base_url (str, optional): The base URL of the OAuth provider.
+            base_url: The base URL of the OAuth provider.
                 If specified, all URLs passed to this instance will be
                 resolved relative to this URL.
-            authorization_url (str): The URL specified by the OAuth provider for
+            authorization_url: The URL specified by the OAuth provider for
                 obtaining an
                 `authorization grant <http://tools.ietf.org/html/rfc6749#section-1.3>`_.
                 This can be an fully-qualified URL, or a path that is
                 resolved relative to the ``base_url``.
-            authorization_url_params (dict, optional): A dict of extra
+            authorization_url_params (dict): A dict of extra
                 key-value pairs to include in the query string of the
                 ``authorization_url``, beyond those necessary for a standard
                 OAuth 2 authorization grant request.
-            token_url (str): The URL specified by the OAuth provider for
+            token_url: The URL specified by the OAuth provider for
                 obtaining an
                 `access token <http://tools.ietf.org/html/rfc6749#section-1.4>`_.
                 This can be an fully-qualified URL, or a path that is
                 resolved relative to the ``base_url``.
-            token_url_params (dict, optional): A dict of extra
+            token_url_params (dict): A dict of extra
                 key-value pairs to include in the query string of the
                 ``token_url``, beyond those necessary for a standard
                 OAuth 2 access token request.
-            login_url (str, optional): The URL route for the ``login`` view that kicks off
+            login_url: The URL route for the ``login`` view that kicks off
                 the OAuth dance. This string will be
                 :ref:`formatted <python:formatstrings>`
                 with the instance so that attributes can be interpolated.
                 Defaults to ``/{bp.name}``, so that the URL is based on the name
                 of the blueprint.
-            authorized_url (str, optional): The URL route for the ``authorized`` view that
+            authorized_url: The URL route for the ``authorized`` view that
                 completes the OAuth dance. This string will be
                 :ref:`formatted <python:formatstrings>`
                 with the instance so that attributes can be interpolated.
                 Defaults to ``/{bp.name}/authorized``, so that the URL is
                 based on the name of the blueprint.
-            redirect_url (str, optional): When the OAuth dance is complete,
+            redirect_url: When the OAuth dance is complete,
                 redirect the user to this URL.
-            redirect_to (str, optional): When the OAuth dance is complete,
+            redirect_to: When the OAuth dance is complete,
                 redirect the user to the URL obtained by calling
                 :func:`~flask.url_for` with this argument. If you do not specify
                 either ``redirect_url`` or ``redirect_to``, the user will be
                 redirected to the root path (``/``).
-            session_class (class, optional): The class to use for creating a
+            session_class: The class to use for creating a
                 Requests session. Defaults to
                 :class:`~flask_dance.consumer.oauth2.OAuth2Session`.
+            token_storage: An instance of a token storage backend to use for
+                this blueprint.
+            token_storage_class: A callable that returns an instance of a token
+                storage backend. The callable will be called with this blueprint
+                as the first argument. Defaults to
+                :class:`~flask_dance.consumer.storage.session.SessionStorage`.
         """
         BaseOAuthConsumerBlueprint.__init__(
             self, name, import_name,
