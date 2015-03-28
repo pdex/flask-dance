@@ -8,7 +8,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from flask_cache import Cache
 from flask_login import LoginManager, UserMixin, current_user, login_user
 from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized
-from flask_dance.models import OAuthConsumerMixin
+from flask_dance.consumer.storage.sqla import OAuthConsumerMixin, SQLAlchemyStorage
 try:
     import blinker
 except ImportError:
@@ -80,12 +80,13 @@ class record_queries(object):
         event.remove(self.target, self.identifier, self.record_query)
 
 
-def test_model(app, db, blueprint, request):
+def test_backend(app, db, blueprint, request):
 
     class OAuth(db.Model, OAuthConsumerMixin):
         pass
 
-    blueprint.set_token_storage_sqlalchemy(OAuth, db.session)
+    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session)
+    blueprint.token_storage = sqla_storage
 
     db.create_all()
     def done():
@@ -165,8 +166,11 @@ def test_model_with_user(app, db, blueprint, request):
     alice = User(name="Alice")
     db.session.add(alice)
     db.session.commit()
+    # load alice's ID -- this issues a database query
+    alice.id
 
-    blueprint.set_token_storage_sqlalchemy(OAuth, db.session, user=alice)
+    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session, user=alice)
+    blueprint.token_storage = sqla_storage
 
     with record_queries(db.engine) as queries:
         with app.test_client() as client:
@@ -216,7 +220,8 @@ def test_load_token_for_user(app, db, blueprint, request):
     request.addfinalizer(done)
 
     # set token storage
-    blueprint.set_token_storage_sqlalchemy(OAuth, db.session)
+    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session)
+    blueprint.token_storage = sqla_storage
 
     # make users and OAuth tokens for several people
     alice = User(name="Alice")
@@ -263,7 +268,8 @@ def test_model_set_token_with_flask_login(app, db, blueprint, request):
         user_id = db.Column(db.Integer, db.ForeignKey(User.id))
         user = db.relationship(User)
 
-    blueprint.set_token_storage_sqlalchemy(OAuth, db.session, user=current_user)
+    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session, user=current_user)
+    blueprint.token_storage = sqla_storage
 
     db.create_all()
     def done():
@@ -299,7 +305,7 @@ def test_model_set_token_with_flask_login(app, db, blueprint, request):
             assert resp.status_code == 302
             assert resp.headers["Location"] == "https://a.b.c/oauth_done"
 
-    assert len(queries) == 4
+    assert len(queries) == 5
 
     # lets do it again, with Bob as the logged in user -- he gets a different token
     responses.reset()
@@ -324,7 +330,7 @@ def test_model_set_token_with_flask_login(app, db, blueprint, request):
             assert resp.status_code == 302
             assert resp.headers["Location"] == "https://a.b.c/oauth_done"
 
-    assert len(queries) == 4
+    assert len(queries) == 5
 
     # check the database
     authorizations = OAuth.query.all()
@@ -359,7 +365,8 @@ def test_model_set_token_with_flask_login_anon_to_authed(app, db, blueprint, req
         user_id = db.Column(db.Integer, db.ForeignKey(User.id))
         user = db.relationship(User)
 
-    blueprint.set_token_storage_sqlalchemy(OAuth, db.session, user=current_user)
+    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session, user=current_user)
+    blueprint.token_storage = sqla_storage
 
     db.create_all()
     def done():
@@ -406,7 +413,7 @@ def test_model_set_token_with_flask_login_anon_to_authed(app, db, blueprint, req
             assert resp.status_code == 302
             assert resp.headers["Location"] == "https://a.b.c/oauth_done"
 
-    assert len(queries) == 5
+    assert len(queries) == 6
 
     # check the database
     users = User.query.all()
@@ -437,7 +444,8 @@ def test_model_get_token_with_flask_login(app, db, blueprint, request):
         user_id = db.Column(db.Integer, db.ForeignKey(User.id))
         user = db.relationship(User)
 
-    blueprint.set_token_storage_sqlalchemy(OAuth, db.session, user=current_user)
+    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session, user=current_user)
+    blueprint.token_storage = sqla_storage
 
     db.create_all()
     def done():
@@ -502,7 +510,8 @@ def test_model_repeated_token(app, db, blueprint, request):
     class OAuth(db.Model, OAuthConsumerMixin):
         pass
 
-    blueprint.set_token_storage_sqlalchemy(OAuth, db.session)
+    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session)
+    blueprint.token_storage = sqla_storage
 
     db.create_all()
     def done():
@@ -558,7 +567,8 @@ def test_model_with_cache(app, db, blueprint, request):
     class OAuth(db.Model, OAuthConsumerMixin):
         pass
 
-    blueprint.set_token_storage_sqlalchemy(OAuth, db.session, cache=cache)
+    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session, cache=cache)
+    blueprint.token_storage = sqla_storage
 
     db.create_all()
     def done():

@@ -6,6 +6,7 @@ from urlobject import URLObject
 from flask import Flask
 from flask_dance.contrib.google import make_google_blueprint, google
 from flask_dance.consumer import OAuth2ConsumerBlueprint
+from flask_dance.consumer.storage import MemoryStorage
 
 
 def test_blueprint_factory():
@@ -54,14 +55,18 @@ def test_context_local():
 
     # set up two apps with two different set of auth tokens
     app1 = Flask(__name__)
-    goog_bp1 = make_google_blueprint("foo1", "bar1", redirect_to="url1")
+    goog_bp1 = make_google_blueprint(
+        "foo1", "bar1", redirect_to="url1", token_storage_class=MemoryStorage,
+    )
     app1.register_blueprint(goog_bp1)
-    goog_bp1.token_getter(lambda: {"access_token": "app1"})
+    goog_bp1.token_storage.token = {"access_token": "app1"}
 
     app2 = Flask(__name__)
-    goog_bp2 = make_google_blueprint("foo2", "bar2", redirect_to="url2")
+    goog_bp2 = make_google_blueprint(
+        "foo2", "bar2", redirect_to="url2", token_storage_class=MemoryStorage,
+    )
     app2.register_blueprint(goog_bp2)
-    goog_bp2.token_getter(lambda: {"access_token": "app2"})
+    goog_bp2.token_storage.token = {"access_token": "app2"}
 
     # outside of a request context, referencing functions on the `google` object
     # will raise an exception

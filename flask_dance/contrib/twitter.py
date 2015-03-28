@@ -12,10 +12,10 @@ except ImportError:
 __maintainer__ = "David Baumgold <david@davidbaumgold.com>"
 
 
-def make_twitter_blueprint(api_key=None, api_secret=None,
-                           redirect_url=None, redirect_to=None,
-                           login_url=None, authorized_url=None,
-                           session_class=None):
+def make_twitter_blueprint(
+        api_key=None, api_secret=None,
+        redirect_url=None, redirect_to=None, login_url=None, authorized_url=None,
+        session_class=None, token_storage=None, token_storage_class=None):
     """
     Make a blueprint for authenticating with Twitter using OAuth 1. This requires
     an API key and API secret from Twitter. You should either pass them to
@@ -53,6 +53,8 @@ def make_twitter_blueprint(api_key=None, api_secret=None,
         login_url=login_url,
         authorized_url=authorized_url,
         session_class=session_class,
+        token_storage=token_storage,
+        token_storage_class=token_storage_class,
     )
     twitter_bp.from_config["client_key"] = "TWITTER_OAUTH_API_KEY"
     twitter_bp.from_config["client_secret"] = "TWITTER_OAUTH_API_SECRET"

@@ -1,3 +1,9 @@
+from datetime import datetime
+
+from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy_utils import JSONType
 from sqlalchemy.orm.exc import NoResultFound
 from flask_dance.utils import FakeCache, first, getattrd
 from flask_dance.consumer.storage import BaseTokenStorage
@@ -7,10 +13,46 @@ except ImportError:
     AnonymousUserMixin = None
 
 
+class OAuthConsumerMixin(object):
+    """
+    A :ref:`SQLAlchemy declarative mixin <sqlalchemy:declarative_mixins>` with
+    some suggested columns for a model to store OAuth tokens:
+
+    ``id``
+        an integer primary key
+    ``provider``
+        a short name to indicate which OAuth provider issued
+        this token
+    ``created_at``
+        an automatically generated datetime that indicates when
+        the OAuth provider issued this token
+    ``token``
+        a :class:`JSON <sqlalchemy_utils.types.json.JSONType>` field to store
+        the actual token received from the OAuth provider
+    """
+    @declared_attr
+    def __tablename__(cls):
+        return "flask_dance_{}".format(cls.__name__.lower())
+
+    id = Column(Integer, primary_key=True)
+    provider = Column(String(50))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    token = Column(MutableDict.as_mutable(JSONType))
+
+    def __repr__(self):
+        parts = []
+        parts.append(self.__class__.__name__)
+        if self.id:
+            parts.append("id={}".format(self.id))
+        if self.provider:
+            parts.append('provider="{}"'.format(self.provider))
+        return "<{}>".format(" ".join(parts))
+
+
 class SQLAlchemyStorage(BaseTokenStorage):
     def __init__(self, blueprint, model, session,
                  user=None, user_id=None, anon_user=None, cache=None):
-        super(SessionStorage, self).__init__(blueprint)
+        super(SQLAlchemyStorage, self).__init__(blueprint)
         self.model = model
         self.session = session
         self.user = user
@@ -18,7 +60,7 @@ class SQLAlchemyStorage(BaseTokenStorage):
         self.anon_user = anon_user or AnonymousUserMixin
         self.cache = cache or FakeCache()
 
-    def make_cache_key(name=None, user=None, user_id=None):
+    def make_cache_key(self, user=None, user_id=None):
         uid = first([user_id, self.user_id, self.blueprint.user_id])
         if not uid:
             u = first(_get_real_user(ref, self.anon_user)
@@ -28,8 +70,14 @@ class SQLAlchemyStorage(BaseTokenStorage):
             name=self.blueprint.name, user_id=uid,
         )
 
-    @self.cache.memoize()
     def get(self, user=None, user_id=None):
+        # check cache
+        cache_key = self.make_cache_key(user=user, user_id=user_id)
+        token = self.cache.get(cache_key)
+        if token:
+            return token
+
+        # if not cached, make database queries
         query = (
             self.session.query(self.model)
             .filter_by(provider=self.blueprint.name)
@@ -48,10 +96,14 @@ class SQLAlchemyStorage(BaseTokenStorage):
             query = query.filter_by(user_id=None)
         # run query
         try:
-            return query.one().token
+            token = query.one().token
         except NoResultFound:
-            return None
-    get_token.make_cache_key = make_cache_key
+            token = None
+
+        # cache the result
+        self.cache.set(cache_key, token)
+
+        return token
 
     def set(self, token, user=None, user_id=None):
         # if there was an existing model, delete it
@@ -87,7 +139,7 @@ class SQLAlchemyStorage(BaseTokenStorage):
         # commit to delete and add simultaneously
         self.session.commit()
         # invalidate cache
-        self.cache.delete_memoized(self.get)
+        self.cache.delete(self.make_cache_key(user=user, user_id=user_id))
 
     def delete(self, user=None, user_id=None):
         query = (
@@ -110,7 +162,7 @@ class SQLAlchemyStorage(BaseTokenStorage):
         query.delete()
         self.session.commit()
         # invalidate cache
-        self.cache.delete_memoized(self.get)
+        self.cache.delete(self.make_cache_key(user=user, user_id=user_id))
 
 
 def _get_real_user(user, anon_user=None):

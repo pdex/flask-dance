@@ -6,6 +6,7 @@ from urlobject import URLObject
 from flask import Flask
 from flask_dance.contrib.github import make_github_blueprint, github
 from flask_dance.consumer import OAuth2ConsumerBlueprint
+from flask_dance.consumer.storage import MemoryStorage
 
 
 def test_blueprint_factory():
@@ -45,14 +46,18 @@ def test_context_local():
 
     # set up two apps with two different set of auth tokens
     app1 = Flask(__name__)
-    ghbp1 = make_github_blueprint("foo1", "bar1", redirect_to="url1")
+    ghbp1 = make_github_blueprint(
+        "foo1", "bar1", redirect_to="url1", token_storage_class=MemoryStorage,
+    )
     app1.register_blueprint(ghbp1)
-    ghbp1.token_getter(lambda: {"access_token": "app1"})
+    ghbp1.token_storage.token = {"access_token": "app1"}
 
     app2 = Flask(__name__)
-    ghbp2 = make_github_blueprint("foo2", "bar2", redirect_to="url2")
+    ghbp2 = make_github_blueprint(
+        "foo2", "bar2", redirect_to="url2", token_storage_class=MemoryStorage,
+    )
     app2.register_blueprint(ghbp2)
-    ghbp2.token_getter(lambda: {"access_token": "app2"})
+    ghbp2.token_storage.token = {"access_token": "app2"}
 
     # outside of a request context, referencing functions on the `github` object
     # will raise an exception
