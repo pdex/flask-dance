@@ -163,6 +163,8 @@ class SQLAlchemyStorage(BaseTokenStorage):
         self.session.commit()
         # invalidate cache
         self.cache.delete(self.make_cache_key(user=user, user_id=user_id))
+        # load token, to propogate removal
+        self.blueprint.load_token()
 
 
 def _get_real_user(user, anon_user=None):

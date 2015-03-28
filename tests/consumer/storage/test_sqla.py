@@ -80,7 +80,7 @@ class record_queries(object):
         event.remove(self.target, self.identifier, self.record_query)
 
 
-def test_backend(app, db, blueprint, request):
+def test_sqla_backend_without_user(app, db, blueprint, request):
 
     class OAuth(db.Model, OAuthConsumerMixin):
         pass
@@ -123,7 +123,7 @@ def test_backend(app, db, blueprint, request):
     }
 
 
-def test_model_repr(app, db, request):
+def test_sqla_model_repr(app, db, request):
     class MyAwesomeOAuth(db.Model, OAuthConsumerMixin):
         pass
 
@@ -146,7 +146,7 @@ def test_model_repr(app, db, request):
     assert "secret" not in repr(o)
 
 
-def test_model_with_user(app, db, blueprint, request):
+def test_sqla_backend(app, db, blueprint, request):
 
     class User(db.Model):
         id = db.Column(db.Integer, primary_key=True)
@@ -203,7 +203,7 @@ def test_model_with_user(app, db, blueprint, request):
     }
 
 
-def test_load_token_for_user(app, db, blueprint, request):
+def test_sqla_load_token_for_user(app, db, blueprint, request):
 
     class User(db.Model):
         id = db.Column(db.Integer, primary_key=True)
@@ -239,25 +239,41 @@ def test_load_token_for_user(app, db, blueprint, request):
     # by default, we should not have a token for anyone
     sess = blueprint.session
     assert not sess.token
+    assert not blueprint.token
 
     # load token for various users
     sess.load_token(alice)
     assert sess.token == alice_token
+    assert blueprint.token == alice_token
 
     sess.load_token(bob)
     assert sess.token == bob_token
+    assert blueprint.token == bob_token
 
     sess.load_token(alice)
     assert sess.token == alice_token
+    assert blueprint.token == alice_token
 
     sess.load_token(sue)
     assert sess.token == sue_token
+    assert blueprint.token == sue_token
 
     # load for user ID as well
     sess.load_token(user_id=bob.id)
     assert sess.token == bob_token
+    assert blueprint.token == bob_token
 
-def test_model_set_token_with_flask_login(app, db, blueprint, request):
+    # try deleting user tokens
+    del blueprint.token
+    assert sess.token == None
+    assert blueprint.token == None
+
+    # shouldn't affect alice's token
+    sess.load_token(user_id=alice.id)
+    assert sess.token == alice_token
+    assert blueprint.token == alice_token
+
+def test_sqla_flask_login(app, db, blueprint, request):
     login_manager = LoginManager(app)
 
     class User(db.Model, UserMixin):
@@ -354,7 +370,7 @@ def test_model_set_token_with_flask_login(app, db, blueprint, request):
 
 
 @requires_blinker
-def test_model_set_token_with_flask_login_anon_to_authed(app, db, blueprint, request):
+def test_sqla_flask_login_anon_to_authed(app, db, blueprint, request):
     login_manager = LoginManager(app)
 
     class User(db.Model, UserMixin):
@@ -433,7 +449,7 @@ def test_model_set_token_with_flask_login_anon_to_authed(app, db, blueprint, req
     assert oauth.user_id == user.id
 
 
-def test_model_get_token_with_flask_login(app, db, blueprint, request):
+def test_sqla_flask_login_preload_logged_in_user(app, db, blueprint, request):
     login_manager = LoginManager(app)
 
     class User(db.Model, UserMixin):
@@ -505,7 +521,44 @@ def test_model_get_token_with_flask_login(app, db, blueprint, request):
         assert blueprint.session.token == None
 
 
-def test_model_repeated_token(app, db, blueprint, request):
+def test_sqla_delete_token(app, db, blueprint, request):
+
+    class OAuth(db.Model, OAuthConsumerMixin):
+        pass
+
+    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session)
+    blueprint.token_storage = sqla_storage
+
+    db.create_all()
+    def done():
+        db.session.remove()
+        db.drop_all()
+    request.addfinalizer(done)
+
+    # Create an existing OAuth token for the service
+    existing = OAuth(
+        provider="test-service",
+        token={
+            "access_token": "something",
+            "token_type": "bearer",
+            "scope": ["blah"],
+        },
+    )
+    db.session.add(existing)
+    db.session.commit()
+    assert len(OAuth.query.all()) == 1
+
+    assert blueprint.token == {
+        "access_token": "something",
+        "token_type": "bearer",
+        "scope": ["blah"],
+    }
+    del blueprint.token
+    assert blueprint.token == None
+    assert len(OAuth.query.all()) == 0
+
+
+def test_sqla_overwrite_token(app, db, blueprint, request):
 
     class OAuth(db.Model, OAuthConsumerMixin):
         pass
@@ -561,7 +614,7 @@ def test_model_repeated_token(app, db, blueprint, request):
     }
 
 
-def test_model_with_cache(app, db, blueprint, request):
+def test_sqla_cache(app, db, blueprint, request):
     cache = Cache(app)
 
     class OAuth(db.Model, OAuthConsumerMixin):
