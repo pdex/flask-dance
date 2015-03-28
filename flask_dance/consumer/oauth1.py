@@ -63,6 +63,8 @@ class OAuth1ConsumerBlueprint(BaseOAuthConsumerBlueprint):
             redirect_url=None,
             redirect_to=None,
             session_class=None,
+            token_storage=None,
+            token_storage_class=None,
 
             **kwargs):
         """
@@ -128,6 +130,8 @@ class OAuth1ConsumerBlueprint(BaseOAuthConsumerBlueprint):
             url_defaults=url_defaults, root_path=root_path,
             login_url=login_url,
             authorized_url=authorized_url,
+            token_storage=token_storage,
+            token_storage_class=token_storage_class,
         )
 
         session_class = session_class or OAuth1Session

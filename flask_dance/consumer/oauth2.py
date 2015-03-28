@@ -69,6 +69,8 @@ class OAuth2ConsumerBlueprint(BaseOAuthConsumerBlueprint):
             redirect_url=None,
             redirect_to=None,
             session_class=None,
+            token_storage=None,
+            token_storage_class=None,
 
             **kwargs):
         """
@@ -137,6 +139,8 @@ class OAuth2ConsumerBlueprint(BaseOAuthConsumerBlueprint):
             url_defaults=url_defaults, root_path=root_path,
             login_url=login_url,
             authorized_url=authorized_url,
+            token_storage=token_storage,
+            token_storage_class=token_storage_class,
         )
 
         session_class = session_class or OAuth2Session
@@ -152,6 +156,7 @@ class OAuth2ConsumerBlueprint(BaseOAuthConsumerBlueprint):
             base_url=base_url,
             **kwargs
         )
+        self.session.token_updater = self.set_token
 
         self.client_secret = client_secret
         self.state = state
@@ -162,16 +167,6 @@ class OAuth2ConsumerBlueprint(BaseOAuthConsumerBlueprint):
         self.token_url_params = token_url_params or {}
         self.redirect_url = redirect_url
         self.redirect_to = redirect_to
-
-    def token_setter(self, func):
-        """
-        A decorator used to indicate the function used to store a token
-        from a completed OAuth dance, so that it can be retrieved later.
-        This function will also be called when the token is refreshed.
-        """
-        BaseOAuthConsumerBlueprint.token_setter(self, func)
-        if hasattr(self, "session"):
-            self.session.token_updater = func
 
     @property
     def client_id(self):
