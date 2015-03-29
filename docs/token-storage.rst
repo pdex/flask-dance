@@ -95,6 +95,7 @@ override the `get`, `set`, and `delete` methods. For example, here's a
 backend that uses a file on disk::
 
     import os
+    import os.path
     import json
     from flask_dance.consumer.storage import BaseTokenStorage
 
@@ -104,6 +105,8 @@ backend that uses a file on disk::
             self.filepath = filepath
 
         def get(self):
+            if not os.path.exists(self.filepath):
+                return None
             with open(self.filepath) as f:
                 return json.load(f)
 
