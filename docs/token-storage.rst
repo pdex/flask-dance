@@ -12,6 +12,7 @@ their browser, the OAuth token will be lost, so its not a good choice for
 production usage. Fortunately, Flask-Dance comes with some other options for
 storage backends.
 
+.. _sqlalchemy-token-storage-backend:
 
 SQLAlchemy
 ----------
