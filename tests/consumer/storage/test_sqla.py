@@ -85,8 +85,7 @@ def test_sqla_backend_without_user(app, db, blueprint, request):
     class OAuth(db.Model, OAuthConsumerMixin):
         pass
 
-    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session)
-    blueprint.token_storage = sqla_storage
+    blueprint.token = SQLAlchemyStorage(OAuth, db.session)
 
     db.create_all()
     def done():
@@ -169,8 +168,7 @@ def test_sqla_backend(app, db, blueprint, request):
     # load alice's ID -- this issues a database query
     alice.id
 
-    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session, user=alice)
-    blueprint.token_storage = sqla_storage
+    blueprint.token = SQLAlchemyStorage(OAuth, db.session, user=alice)
 
     with record_queries(db.engine) as queries:
         with app.test_client() as client:
@@ -220,8 +218,7 @@ def test_sqla_load_token_for_user(app, db, blueprint, request):
     request.addfinalizer(done)
 
     # set token storage
-    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session)
-    blueprint.token_storage = sqla_storage
+    blueprint.token = SQLAlchemyStorage(OAuth, db.session)
 
     # make users and OAuth tokens for several people
     alice = User(name="Alice")
@@ -284,8 +281,7 @@ def test_sqla_flask_login(app, db, blueprint, request):
         user_id = db.Column(db.Integer, db.ForeignKey(User.id))
         user = db.relationship(User)
 
-    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session, user=current_user)
-    blueprint.token_storage = sqla_storage
+    blueprint.token = SQLAlchemyStorage(OAuth, db.session, user=current_user)
 
     db.create_all()
     def done():
@@ -381,8 +377,7 @@ def test_sqla_flask_login_anon_to_authed(app, db, blueprint, request):
         user_id = db.Column(db.Integer, db.ForeignKey(User.id))
         user = db.relationship(User)
 
-    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session, user=current_user)
-    blueprint.token_storage = sqla_storage
+    blueprint.token = SQLAlchemyStorage(OAuth, db.session, user=current_user)
 
     db.create_all()
     def done():
@@ -460,8 +455,7 @@ def test_sqla_flask_login_preload_logged_in_user(app, db, blueprint, request):
         user_id = db.Column(db.Integer, db.ForeignKey(User.id))
         user = db.relationship(User)
 
-    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session, user=current_user)
-    blueprint.token_storage = sqla_storage
+    blueprint.token = SQLAlchemyStorage(OAuth, db.session, user=current_user)
 
     db.create_all()
     def done():
@@ -526,8 +520,7 @@ def test_sqla_delete_token(app, db, blueprint, request):
     class OAuth(db.Model, OAuthConsumerMixin):
         pass
 
-    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session)
-    blueprint.token_storage = sqla_storage
+    blueprint.token = SQLAlchemyStorage(OAuth, db.session)
 
     db.create_all()
     def done():
@@ -563,8 +556,7 @@ def test_sqla_overwrite_token(app, db, blueprint, request):
     class OAuth(db.Model, OAuthConsumerMixin):
         pass
 
-    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session)
-    blueprint.token_storage = sqla_storage
+    blueprint.token = SQLAlchemyStorage(OAuth, db.session)
 
     db.create_all()
     def done():
@@ -620,8 +612,7 @@ def test_sqla_cache(app, db, blueprint, request):
     class OAuth(db.Model, OAuthConsumerMixin):
         pass
 
-    sqla_storage = SQLAlchemyStorage(blueprint, OAuth, db.session, cache=cache)
-    blueprint.token_storage = sqla_storage
+    blueprint.token = SQLAlchemyStorage(OAuth, db.session, cache=cache)
 
     db.create_all()
     def done():

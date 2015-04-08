@@ -3,19 +3,16 @@ from abc import ABCMeta, abstractmethod
 
 
 class BaseTokenStorage(six.with_metaclass(ABCMeta)):
-    def __init__(self, blueprint, *args, **kwargs):
-        self.blueprint = blueprint
-
     @abstractmethod
-    def get(self):
+    def __get__(self, blueprint):
         return None
 
     @abstractmethod
-    def set(self, token):
+    def __set__(self, blueprint, token):
         return None
 
     @abstractmethod
-    def delete(self):
+    def __delete__(self, blueprint):
         return None
 
 
@@ -23,11 +20,11 @@ class NullStorage(BaseTokenStorage):
     """
     Don't actually store anything
     """
-    def get(self):
+    def __get__(self, blueprint):
         return None
-    def set(self, token):
+    def __set__(self, blueprint, token):
         return None
-    def delete(self):
+    def __delete__(self, blueprint):
         return None
 
 
@@ -35,15 +32,14 @@ class MemoryStorage(BaseTokenStorage):
     """
     "Store" the token in memory
     """
-    def __init__(self, blueprint, token=None, *args, **kwargs):
-        super(MemoryStorage, self).__init__(blueprint, *args, **kwargs)
+    def __init__(self, token=None, *args, **kwargs):
         self.token = token
 
-    def get(self):
+    def __get__(self, blueprint):
         return self.token
 
-    def set(self, token):
+    def __set__(self, blueprint, token):
         self.token = token
 
-    def delete(self):
+    def __delete__(self, blueprint):
         self.token = None

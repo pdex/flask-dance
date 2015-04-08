@@ -15,7 +15,7 @@ __maintainer__ = "David Baumgold <david@davidbaumgold.com>"
 def make_github_blueprint(
         client_id=None, client_secret=None, scope=None, redirect_url=None,
         redirect_to=None, login_url=None, authorized_url=None,
-        session_class=None, token_storage=None, token_storage_class=None):
+        session_class=None, token_storage=None):
     """
     Make a blueprint for authenticating with Github using OAuth 2. This requires
     a client ID and client secret from Github. You should either pass them to
@@ -55,7 +55,6 @@ def make_github_blueprint(
         authorized_url=authorized_url,
         session_class=session_class,
         token_storage=token_storage,
-        token_storage_class=token_storage_class,
     )
     github_bp.from_config["client_id"] = "GITHUB_OAUTH_CLIENT_ID"
     github_bp.from_config["client_secret"] = "GITHUB_OAUTH_CLIENT_SECRET"

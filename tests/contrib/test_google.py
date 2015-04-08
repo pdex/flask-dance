@@ -56,17 +56,17 @@ def test_context_local():
     # set up two apps with two different set of auth tokens
     app1 = Flask(__name__)
     goog_bp1 = make_google_blueprint(
-        "foo1", "bar1", redirect_to="url1", token_storage_class=MemoryStorage,
+        "foo1", "bar1", redirect_to="url1",
+        token_storage=MemoryStorage({"access_token": "app1"}),
     )
     app1.register_blueprint(goog_bp1)
-    goog_bp1.token_storage.token = {"access_token": "app1"}
 
     app2 = Flask(__name__)
     goog_bp2 = make_google_blueprint(
-        "foo2", "bar2", redirect_to="url2", token_storage_class=MemoryStorage,
+        "foo2", "bar2", redirect_to="url2",
+        token_storage=MemoryStorage({"access_token": "app2"}),
     )
     app2.register_blueprint(goog_bp2)
-    goog_bp2.token_storage.token = {"access_token": "app2"}
 
     # outside of a request context, referencing functions on the `google` object
     # will raise an exception

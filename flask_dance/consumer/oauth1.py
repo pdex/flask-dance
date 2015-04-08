@@ -61,7 +61,6 @@ class OAuth1ConsumerBlueprint(BaseOAuthConsumerBlueprint):
             redirect_to=None,
             session_class=None,
             token_storage=None,
-            token_storage_class=None,
 
             **kwargs):
         """
@@ -113,11 +112,8 @@ class OAuth1ConsumerBlueprint(BaseOAuthConsumerBlueprint):
             session_class: The class to use for creating a
                 Requests session. Defaults to
                 :class:`~flask_dance.consumer.oauth1.OAuth1Session`.
-            token_storage: An instance of a token storage backend to use for
-                this blueprint.
-            token_storage_class: A callable that returns an instance of a token
-                storage backend. The callable will be called with this blueprint
-                as the first argument. Defaults to
+            token_storage: A storage backend class, or an instance of a storage
+                backend class, to use for this blueprint. Defaults to
                 :class:`~flask_dance.consumer.storage.session.SessionStorage`.
         """
         BaseOAuthConsumerBlueprint.__init__(
@@ -130,7 +126,6 @@ class OAuth1ConsumerBlueprint(BaseOAuthConsumerBlueprint):
             login_url=login_url,
             authorized_url=authorized_url,
             token_storage=token_storage,
-            token_storage_class=token_storage_class,
         )
 
         session_class = session_class or OAuth1Session

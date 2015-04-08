@@ -56,11 +56,10 @@ class SQLAlchemyStorage(BaseTokenStorage):
 
     .. _SQLAlchemy: http://www.sqlalchemy.org/
     """
-    def __init__(self, blueprint, model, session,
+    def __init__(self, model, session,
                  user=None, user_id=None, anon_user=None, cache=None):
         """
         Args:
-            blueprint: The Flask-Dance blueprint.
             model: The SQLAlchemy model class that represents the OAuth token
                 table in the database. At a minimum, it must have a
                 ``provider`` column and a ``token`` column. If tokens are to be
@@ -99,7 +98,6 @@ class SQLAlchemyStorage(BaseTokenStorage):
         .. _Flask-Login: https://flask-login.readthedocs.org/
         .. _Flask-Cache: http://pythonhosted.org/Flask-Cache/
         """
-        super(SQLAlchemyStorage, self).__init__(blueprint)
         self.model = model
         self.session = session
         self.user = user
@@ -107,19 +105,19 @@ class SQLAlchemyStorage(BaseTokenStorage):
         self.anon_user = anon_user or AnonymousUserMixin
         self.cache = cache or FakeCache()
 
-    def make_cache_key(self, user=None, user_id=None):
-        uid = first([user_id, self.user_id, self.blueprint.user_id])
+    def make_cache_key(self, blueprint, user=None, user_id=None):
+        uid = first([user_id, self.user_id, blueprint.user_id])
         if not uid:
             u = first(_get_real_user(ref, self.anon_user)
-                      for ref in (user, self.user, self.blueprint.user))
+                      for ref in (user, self.user, blueprint.user))
             uid = getattr(u, "id", u)
         return "flask_dance_token|{name}|{user_id}".format(
-            name=self.blueprint.name, user_id=uid,
+            name=blueprint.name, user_id=uid,
         )
 
-    def get(self, user=None, user_id=None):
+    def __get__(self, blueprint, user=None, user_id=None):
         # check cache
-        cache_key = self.make_cache_key(user=user, user_id=user_id)
+        cache_key = self.make_cache_key(blueprint=blueprint, user=user, user_id=user_id)
         token = self.cache.get(cache_key)
         if token:
             return token
@@ -127,11 +125,11 @@ class SQLAlchemyStorage(BaseTokenStorage):
         # if not cached, make database queries
         query = (
             self.session.query(self.model)
-            .filter_by(provider=self.blueprint.name)
+            .filter_by(provider=blueprint.name)
         )
-        uid = first([user_id, self.user_id, self.blueprint.user_id])
+        uid = first([user_id, self.user_id, blueprint.user_id])
         u = first(_get_real_user(ref, self.anon_user)
-                  for ref in (user, self.user, self.blueprint.user))
+                  for ref in (user, self.user, blueprint.user))
         # check for user ID
         if hasattr(self.model, "user_id") and uid:
             query = query.filter_by(user_id=uid)
@@ -152,30 +150,30 @@ class SQLAlchemyStorage(BaseTokenStorage):
 
         return token
 
-    def set(self, token, user=None, user_id=None):
+    def __set__(self, blueprint, token, user=None, user_id=None):
         # if there was an existing model, delete it
         existing_query = (
             self.session.query(self.model)
-            .filter_by(provider=self.blueprint.name)
+            .filter_by(provider=blueprint.name)
         )
         # check for user ID
         has_user_id = hasattr(self.model, "user_id")
         if has_user_id:
-            uid = first([user_id, self.user_id, self.blueprint.user_id])
+            uid = first([user_id, self.user_id, blueprint.user_id])
             if uid:
                 existing_query = existing_query.filter_by(user_id=uid)
         # check for user (relationship property)
         has_user = hasattr(self.model, "user")
         if has_user:
             u = first(_get_real_user(ref, self.anon_user)
-                      for ref in (user, self.user, self.blueprint.user))
+                      for ref in (user, self.user, blueprint.user))
             if u:
                 existing_query = existing_query.filter_by(user=u)
         # queue up delete query -- won't be run until commit()
         existing_query.delete()
         # create a new model for this token
         kwargs = {
-            "provider": self.blueprint.name,
+            "provider": blueprint.name,
             "token": token,
         }
         if has_user_id and uid:
@@ -186,16 +184,18 @@ class SQLAlchemyStorage(BaseTokenStorage):
         # commit to delete and add simultaneously
         self.session.commit()
         # invalidate cache
-        self.cache.delete(self.make_cache_key(user=user, user_id=user_id))
+        self.cache.delete(self.make_cache_key(
+            blueprint=blueprint, user=user, user_id=user_id
+        ))
 
-    def delete(self, user=None, user_id=None):
+    def __delete__(self, blueprint, user=None, user_id=None):
         query = (
             self.session.query(self.model)
-            .filter_by(provider=self.blueprint.name)
+            .filter_by(provider=blueprint.name)
         )
-        uid = first([user_id, self.user_id, self.blueprint.user_id])
+        uid = first([user_id, self.user_id, blueprint.user_id])
         u = first(_get_real_user(ref, self.anon_user)
-                  for ref in (user, self.user, self.blueprint.user))
+                  for ref in (user, self.user, blueprint.user))
         # check for user ID
         if hasattr(self.model, "user_id") and uid:
             query = query.filter_by(user_id=uid)
@@ -209,9 +209,11 @@ class SQLAlchemyStorage(BaseTokenStorage):
         query.delete()
         self.session.commit()
         # invalidate cache
-        self.cache.delete(self.make_cache_key(user=user, user_id=user_id))
+        self.cache.delete(self.make_cache_key(
+            blueprint=blueprint, user=user, user_id=user_id,
+        ))
         # load token, to propogate removal
-        self.blueprint.load_token()
+        blueprint.load_token()
 
 
 def _get_real_user(user, anon_user=None):

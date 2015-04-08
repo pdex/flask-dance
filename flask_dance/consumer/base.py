@@ -14,11 +14,13 @@ oauth_error = _signals.signal('oauth-error')
 
 
 class BaseOAuthConsumerBlueprint(six.with_metaclass(ABCMeta, flask.Blueprint)):
+    token = SessionStorage()
+
     def __init__(self, name, import_name,
             static_folder=None, static_url_path=None, template_folder=None,
             url_prefix=None, subdomain=None, url_defaults=None, root_path=None,
             login_url=None, authorized_url=None,
-            token_storage=None, token_storage_class=None):
+            token_storage=None):
 
         bp_kwargs = dict(
             name=name,
@@ -52,9 +54,6 @@ class BaseOAuthConsumerBlueprint(six.with_metaclass(ABCMeta, flask.Blueprint)):
 
         self.user = None
         self.user_id = None
-
-        token_storage_class = token_storage_class or SessionStorage
-        self.token_storage = token_storage or token_storage_class(self)
 
         self.logged_in_funcs = []
         self.from_config = {}
@@ -96,15 +95,3 @@ class BaseOAuthConsumerBlueprint(six.with_metaclass(ABCMeta, flask.Blueprint)):
     @abstractmethod
     def authorized(self):
         raise NotImplementedError()
-
-    def get_token(self, *args, **kwargs):
-        return self.token_storage.get(*args, **kwargs)
-
-    def set_token(self, *args, **kwargs):
-        return self.token_storage.set(*args, **kwargs)
-
-    def delete_token(self, *args, **kwargs):
-        return self.token_storage.delete(*args, **kwargs)
-
-    token = property(get_token, set_token, delete_token)
-
