@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 from distutils.version import StrictVersion
 import flask
 from flask.signals import Namespace
-from flask_dance.consumer.storage.session import SessionStorage
+from flask_dance.consumer.backend.session import SessionBackend
 from flask_dance.utils import Dictective
 
 
@@ -16,13 +16,10 @@ oauth_error = _signals.signal('oauth-error')
 
 
 class BaseOAuthConsumerBlueprint(six.with_metaclass(ABCMeta, flask.Blueprint)):
-    token = SessionStorage()
-
     def __init__(self, name, import_name,
             static_folder=None, static_url_path=None, template_folder=None,
             url_prefix=None, subdomain=None, url_defaults=None, root_path=None,
-            login_url=None, authorized_url=None,
-            token_storage=None):
+            login_url=None, authorized_url=None, backend=None):
 
         bp_kwargs = dict(
             name=name,
@@ -54,14 +51,17 @@ class BaseOAuthConsumerBlueprint(six.with_metaclass(ABCMeta, flask.Blueprint)):
             view_func=self.authorized,
         )
 
-        self.user = None
-        self.user_id = None
+        if backend is None:
+            self.backend = SessionBackend()
+        elif callable(backend):
+            self.backend = backend()
+        else:
+            self.backend = backend
 
         self.logged_in_funcs = []
         self.from_config = {}
         self.config = Dictective(lambda d: lazy.invalidate(self.session, "token"))
         self.before_app_request(self.load_config)
-        self.before_app_request(self.load_token)
 
     def load_config(self):
         """
@@ -87,9 +87,19 @@ class BaseOAuthConsumerBlueprint(six.with_metaclass(ABCMeta, flask.Blueprint)):
                     # just use a normal setattr call
                     setattr(self, local_var, value)
 
-    @abstractmethod
-    def load_token(self):
-        raise NotImplementedError()
+    @property
+    def token(self):
+        return self.backend.get(self)
+
+    @token.setter
+    def token(self, value):
+        self.backend.set(self, value)
+        lazy.invalidate(self.session, "token")
+
+    @token.deleter
+    def token(self):
+        self.backend.delete(self)
+        lazy.invalidate(self.session, "token")
 
     @abstractmethod
     def login(self):

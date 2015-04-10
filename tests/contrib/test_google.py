@@ -6,7 +6,7 @@ from urlobject import URLObject
 from flask import Flask
 from flask_dance.contrib.google import make_google_blueprint, google
 from flask_dance.consumer import OAuth2ConsumerBlueprint
-from flask_dance.consumer.storage import MemoryStorage
+from flask_dance.consumer.backend import MemoryBackend
 
 
 def test_blueprint_factory():
@@ -57,14 +57,14 @@ def test_context_local():
     app1 = Flask(__name__)
     goog_bp1 = make_google_blueprint(
         "foo1", "bar1", redirect_to="url1",
-        token_storage=MemoryStorage({"access_token": "app1"}),
+        backend=MemoryBackend({"access_token": "app1"}),
     )
     app1.register_blueprint(goog_bp1)
 
     app2 = Flask(__name__)
     goog_bp2 = make_google_blueprint(
         "foo2", "bar2", redirect_to="url2",
-        token_storage=MemoryStorage({"access_token": "app2"}),
+        backend=MemoryBackend({"access_token": "app2"}),
     )
     app2.register_blueprint(goog_bp2)
 

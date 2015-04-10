@@ -14,7 +14,7 @@ import flask
 from flask_dance.consumer import (
     OAuth2ConsumerBlueprint, oauth_authorized, oauth_error
 )
-from flask_dance.consumer.oauth2 import OAuth2Session
+from flask_dance.consumer.requests import OAuth2Session
 
 try:
     import blinker

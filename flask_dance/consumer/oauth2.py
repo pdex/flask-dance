@@ -4,40 +4,12 @@ import logging
 import flask
 from flask import request, url_for, redirect
 from urlobject import URLObject
-from requests_oauthlib import OAuth2Session as BaseOAuth2Session
 from .base import (
     BaseOAuthConsumerBlueprint, oauth_authorized, oauth_error
 )
+from .requests import OAuth2Session
 
 log = logging.getLogger(__name__)
-
-
-class OAuth2Session(BaseOAuth2Session):
-    """
-    A :class:`requests.Session` subclass that can do some special things:
-
-    * handles OAuth2 authentication
-      (from :class:`requests_oauthlib.OAuth2Session` superclass)
-    * has a ``base_url`` property used for relative URL resolution
-    * proxies ``load_token`` requests along to the blueprint
-    """
-    def __init__(self, blueprint=None, base_url=None, *args, **kwargs):
-        super(OAuth2Session, self).__init__(*args, **kwargs)
-        self.blueprint = blueprint
-        self.base_url = URLObject(base_url)
-
-    def request(self, method, url, data=None, headers=None, **kwargs):
-        if self.base_url:
-            url = self.base_url.relative(url)
-        return super(OAuth2Session, self).request(
-            method=method, url=url, data=data, headers=headers, **kwargs
-        )
-
-    def load_token(self, user=None, user_id=None):
-        if self.blueprint:
-            self.blueprint.user = user
-            self.blueprint.user_id = user_id
-            self.blueprint.load_token()
 
 
 class OAuth2ConsumerBlueprint(BaseOAuthConsumerBlueprint):
@@ -66,7 +38,7 @@ class OAuth2ConsumerBlueprint(BaseOAuthConsumerBlueprint):
             redirect_url=None,
             redirect_to=None,
             session_class=None,
-            token_storage=None,
+            backend=None,
 
             **kwargs):
         """
@@ -121,9 +93,9 @@ class OAuth2ConsumerBlueprint(BaseOAuthConsumerBlueprint):
             session_class: The class to use for creating a
                 Requests session. Defaults to
                 :class:`~flask_dance.consumer.oauth2.OAuth2Session`.
-            token_storage: A storage backend class, or an instance of a storage
+            backend: A storage backend class, or an instance of a storage
                 backend class, to use for this blueprint. Defaults to
-                :class:`~flask_dance.consumer.storage.session.SessionStorage`.
+                :class:`~flask_dance.consumer.backend.session.SessionBackend`.
         """
         BaseOAuthConsumerBlueprint.__init__(
             self, name, import_name,
@@ -134,7 +106,7 @@ class OAuth2ConsumerBlueprint(BaseOAuthConsumerBlueprint):
             url_defaults=url_defaults, root_path=root_path,
             login_url=login_url,
             authorized_url=authorized_url,
-            token_storage=token_storage,
+            backend=backend,
         )
 
         session_class = session_class or OAuth2Session
@@ -145,12 +117,13 @@ class OAuth2ConsumerBlueprint(BaseOAuthConsumerBlueprint):
             auto_refresh_kwargs=auto_refresh_kwargs,
             scope=scope,
             state=state,
-            token_updater=self.set_token,
             blueprint=self,
             base_url=base_url,
             **kwargs
         )
-        self.session.token_updater = self.set_token
+        def token_updater(token):
+            self.token = token
+        self.session.token_updater = token_updater
 
         self.client_secret = client_secret
         self.state = state

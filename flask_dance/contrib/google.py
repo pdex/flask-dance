@@ -16,7 +16,7 @@ def make_google_blueprint(
         client_id=None, client_secret=None, scope=None,
         offline=False, reprompt_consent=False,
         redirect_url=None, redirect_to=None, login_url=None, authorized_url=None,
-        session_class=None, token_storage=None):
+        session_class=None, backend=None):
     """
     Make a blueprint for authenticating with Google using OAuth 2. This requires
     a client ID and client secret from Google. You should either pass them to
@@ -69,7 +69,7 @@ def make_google_blueprint(
         authorized_url=authorized_url,
         authorization_url_params=authorization_url_params,
         session_class=session_class,
-        token_storage=token_storage,
+        backend=backend,
     )
     google_bp.from_config["client_id"] = "GOOGLE_OAUTH_CLIENT_ID"
     google_bp.from_config["client_secret"] = "GOOGLE_OAUTH_CLIENT_SECRET"

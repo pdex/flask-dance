@@ -2,44 +2,44 @@ import six
 from abc import ABCMeta, abstractmethod
 
 
-class BaseTokenStorage(six.with_metaclass(ABCMeta)):
+class BaseBackend(six.with_metaclass(ABCMeta)):
     @abstractmethod
-    def __get__(self, blueprint):
+    def get(self, blueprint):
         return None
 
     @abstractmethod
-    def __set__(self, blueprint, token):
+    def set(self, blueprint, token):
         return None
 
     @abstractmethod
-    def __delete__(self, blueprint):
+    def delete(self, blueprint):
         return None
 
 
-class NullStorage(BaseTokenStorage):
+class NullBackend(BaseBackend):
     """
     Don't actually store anything
     """
-    def __get__(self, blueprint):
+    def get(self, blueprint):
         return None
-    def __set__(self, blueprint, token):
+    def set(self, blueprint, token):
         return None
-    def __delete__(self, blueprint):
+    def delete(self, blueprint):
         return None
 
 
-class MemoryStorage(BaseTokenStorage):
+class MemoryBackend(BaseBackend):
     """
     "Store" the token in memory
     """
     def __init__(self, token=None, *args, **kwargs):
         self.token = token
 
-    def __get__(self, blueprint):
+    def get(self, blueprint):
         return self.token
 
-    def __set__(self, blueprint, token):
+    def set(self, blueprint, token):
         self.token = token
 
-    def __delete__(self, blueprint):
+    def delete(self, blueprint):
         self.token = None

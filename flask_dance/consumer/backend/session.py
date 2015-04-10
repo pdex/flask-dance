@@ -1,8 +1,8 @@
-from . import BaseTokenStorage
+from . import BaseBackend
 import flask
 
 
-class SessionStorage(BaseTokenStorage):
+class SessionBackend(BaseBackend):
     """
     The default storage backend. Stores and retrieves OAuth tokens using
     the :ref:`Flask session <flask:sessions>`.
@@ -18,14 +18,14 @@ class SessionStorage(BaseTokenStorage):
         """
         self.key = key
 
-    def __get__(self, blueprint):
+    def get(self, blueprint):
         key = self.key.format(bp=blueprint)
         return flask.session.get(key)
 
-    def __set__(self, blueprint, token):
+    def set(self, blueprint, token):
         key = self.key.format(bp=blueprint)
         flask.session[key] = token
 
-    def __delete__(self, blueprint):
+    def delete(self, blueprint):
         key = self.key.format(bp=blueprint)
         del flask.session[key]

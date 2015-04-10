@@ -35,7 +35,7 @@ class OAuth1ConsumerBlueprint(BaseOAuthConsumerBlueprint):
             redirect_url=None,
             redirect_to=None,
             session_class=None,
-            token_storage=None,
+            backend=None,
 
             **kwargs):
         """
@@ -87,9 +87,9 @@ class OAuth1ConsumerBlueprint(BaseOAuthConsumerBlueprint):
             session_class: The class to use for creating a
                 Requests session. Defaults to
                 :class:`~flask_dance.consumer.oauth1.OAuth1Session`.
-            token_storage: A storage backend class, or an instance of a storage
+            backend: A storage backend class, or an instance of a storage
                 backend class, to use for this blueprint. Defaults to
-                :class:`~flask_dance.consumer.storage.session.SessionStorage`.
+                :class:`~flask_dance.consumer.backend.session.SessionBackend`.
         """
         BaseOAuthConsumerBlueprint.__init__(
             self, name, import_name,
@@ -100,7 +100,7 @@ class OAuth1ConsumerBlueprint(BaseOAuthConsumerBlueprint):
             url_defaults=url_defaults, root_path=root_path,
             login_url=login_url,
             authorized_url=authorized_url,
-            token_storage=token_storage,
+            backend=backend,
         )
 
         session_class = session_class or OAuth1Session
@@ -173,14 +173,3 @@ class OAuth1ConsumerBlueprint(BaseOAuthConsumerBlueprint):
         if not any(ret == False for func, ret in results):
             self.token = token
         return redirect(next_url)
-
-    def load_token(self):
-        token = self.token
-        if token and "oauth_token" in token and "oauth_token_secret" in token:
-            # This really, really violates the Law of Demeter, but
-            # I don't see a better way to set these parameters. :(
-            self.session.auth.client.resource_owner_key = to_unicode(token["oauth_token"])
-            self.session.auth.client.resource_owner_secret = to_unicode(token["oauth_token_secret"])
-        else:
-            self.session.auth.client.resource_owner_key = None
-            self.session.auth.client.resource_owner_secret = None
