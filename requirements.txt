@@ -4,3 +4,4 @@ requests-oauthlib
 Flask>=0.7
 urlobject
 six
+lazy

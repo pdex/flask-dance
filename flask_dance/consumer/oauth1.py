@@ -7,32 +7,7 @@ from requests_oauthlib import OAuth1Session as BaseOAuth1Session
 from oauthlib.oauth1 import SIGNATURE_HMAC, SIGNATURE_TYPE_AUTH_HEADER
 from oauthlib.common import to_unicode
 from .base import BaseOAuthConsumerBlueprint, oauth_authorized
-
-
-class OAuth1Session(BaseOAuth1Session):
-    """
-    A :class:`requests.Session` subclass that can do some special things:
-
-    * handles OAuth1 authentication
-      (from :class:`requests_oauthlib.OAuth1Session` superclass)
-    * has a ``base_url`` property used for relative URL resolution
-    * proxies ``load_token`` requests along to the blueprint
-    """
-    def __init__(self, blueprint=None, base_url=None, *args, **kwargs):
-        super(OAuth1Session, self).__init__(*args, **kwargs)
-        self.blueprint = blueprint
-        self.base_url = URLObject(base_url)
-
-    def prepare_request(self, request):
-        if self.base_url:
-            request.url = self.base_url.relative(request.url)
-        return super(OAuth1Session, self).prepare_request(request)
-
-    def load_token(self, user=None, user_id=None):
-        if self.blueprint:
-            self.blueprint.user = user
-            self.blueprint.user_id = user_id
-            self.blueprint.load_token()
+from .requests import OAuth1Session
 
 
 class OAuth1ConsumerBlueprint(BaseOAuthConsumerBlueprint):

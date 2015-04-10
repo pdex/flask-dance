@@ -1,11 +1,13 @@
 from __future__ import unicode_literals, print_function
 
 import six
+from lazy import lazy
 from abc import ABCMeta, abstractmethod
 from distutils.version import StrictVersion
 import flask
 from flask.signals import Namespace
 from flask_dance.consumer.storage.session import SessionStorage
+from flask_dance.utils import Dictective
 
 
 _signals = Namespace()
@@ -57,6 +59,7 @@ class BaseOAuthConsumerBlueprint(six.with_metaclass(ABCMeta, flask.Blueprint)):
 
         self.logged_in_funcs = []
         self.from_config = {}
+        self.config = Dictective(lambda d: lazy.invalidate(self.session, "token"))
         self.before_app_request(self.load_config)
         self.before_app_request(self.load_token)
 
@@ -69,7 +72,7 @@ class BaseOAuthConsumerBlueprint(six.with_metaclass(ABCMeta, flask.Blueprint)):
         and values are the variable name in the Flask application config.
         For example:
 
-            blueprint["session.client_id"] = "GITHUB_OAUTH_CLIENT_ID"
+            blueprint.from_config["session.client_id"] = "GITHUB_OAUTH_CLIENT_ID"
 
         """
         for local_var, config_var in self.from_config.items():
