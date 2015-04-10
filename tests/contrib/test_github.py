@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import pytest
 import responses
 from urlobject import URLObject
+from lazy import lazy
 from flask import Flask
 from flask_dance.contrib.github import make_github_blueprint, github
 from flask_dance.consumer import OAuth2ConsumerBlueprint
@@ -55,7 +56,7 @@ def test_context_local():
     app2 = Flask(__name__)
     ghbp2 = make_github_blueprint(
         "foo2", "bar2", redirect_to="url2",
-        backend=MemoryBackend({"access_token": "app1"}),
+        backend=MemoryBackend({"access_token": "app2"}),
     )
     app2.register_blueprint(ghbp2)
 
@@ -68,12 +69,14 @@ def test_context_local():
     # blueprint session
     with app1.test_request_context("/"):
         app1.preprocess_request()
+        lazy.invalidate(ghbp1.session, "token")
         github.get("https://google.com")
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer app1"
 
     with app2.test_request_context("/"):
         app2.preprocess_request()
+        lazy.invalidate(ghbp2.session, "token")
         github.get("https://google.com")
         request = responses.calls[1].request
         assert request.headers["Authorization"] == "Bearer app2"

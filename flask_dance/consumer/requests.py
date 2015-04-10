@@ -37,9 +37,6 @@ class OAuth1Session(BaseOAuth1Session):
             # I don't see a better way to set these parameters. :(
             self.auth.client.resource_owner_key = to_unicode(t["oauth_token"])
             self.auth.client.resource_owner_secret = to_unicode(t["oauth_token_secret"])
-        else:
-            self.auth.client.resource_owner_key = None
-            self.auth.client.resource_owner_secret = None
 
         return super(OAuth1Session, self).request(
             method=method, url=url, data=data, headers=headers, **kwargs
