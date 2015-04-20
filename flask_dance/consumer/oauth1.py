@@ -1,6 +1,6 @@
 from __future__ import unicode_literals, print_function
 
-import sys
+from lazy import lazy
 from flask import request, url_for, redirect
 from urlobject import URLObject
 from requests_oauthlib import OAuth1Session as BaseOAuth1Session
@@ -103,49 +103,45 @@ class OAuth1ConsumerBlueprint(BaseOAuthConsumerBlueprint):
             backend=backend,
         )
 
-        session_class = session_class or OAuth1Session
-        self.session = session_class(
-            client_key=client_key,
-            client_secret=client_secret,
-            signature_method=signature_method,
-            signature_type=signature_type,
-            rsa_key=rsa_key,
-            client_class=client_class,
-            force_include_body=force_include_body,
-            blueprint=self,
-            base_url=base_url,
-            **kwargs
-        )
+        self.base_url = base_url
+        self.session_class = session_class or OAuth1Session
 
+        # passed to OAuth1Session()
+        self.client_key = client_key
+        self.client_secret = client_secret
+        self.signature_method = signature_method
+        self.signature_type = signature_type
+        self.rsa_key = rsa_key
+        self.client_class = client_class
+        self.force_include_body = force_include_body
+        self.kwargs = kwargs
+
+        # used by view functions
         self.request_token_url = request_token_url
         self.authorization_url = authorization_url
         self.access_token_url = access_token_url
         self.redirect_url = redirect_url
         self.redirect_to = redirect_to
 
-    @property
-    def client_key(self):
-        return self.session._client.client.client_key
+        self.teardown_app_request(self.teardown_session)
 
-    @client_key.setter
-    def client_key(self, value):
-        self.session._client.client.client_key = to_unicode(value)
+    @lazy
+    def session(self):
+        return self.session_class(
+            client_key=self.client_key,
+            client_secret=self.client_secret,
+            signature_method=self.signature_method,
+            signature_type=self.signature_type,
+            rsa_key=self.rsa_key,
+            client_class=self.client_class,
+            force_include_body=self.force_include_body,
+            blueprint=self,
+            base_url=self.base_url,
+            **self.kwargs
+        )
 
-    @property
-    def client_secret(self):
-        return self.session._client.client.client_secret
-
-    @client_secret.setter
-    def client_secret(self, value):
-        self.session._client.client.client_secret = to_unicode(value)
-
-    @property
-    def rsa_key(self):
-        return self.session._client.client.rsa_key
-
-    @rsa_key.setter
-    def rsa_key(self, value):
-        self.session._client.client.rsa_key = to_unicode(value)
+    def teardown_session(self, exception=None):
+        lazy.invalidate(self, "session")
 
     def login(self):
         secure = request.is_secure or request.headers.get("X-Forwarded-Proto", "http") == "https"

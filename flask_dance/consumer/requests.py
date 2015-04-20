@@ -56,6 +56,7 @@ class OAuth2Session(BaseOAuth2Session):
         super(OAuth2Session, self).__init__(*args, **kwargs)
         self.blueprint = blueprint
         self.base_url = URLObject(base_url)
+        lazy.invalidate(self, "token")
 
     @lazy
     def token(self):

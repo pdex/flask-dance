@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import pytest
 import responses
 from urlobject import URLObject
-from lazy import lazy
 from flask import Flask
 from flask_dance.contrib.google import make_google_blueprint, google
 from flask_dance.consumer import OAuth2ConsumerBlueprint
@@ -78,14 +77,12 @@ def test_context_local():
     # blueprint session
     with app1.test_request_context("/"):
         app1.preprocess_request()
-        lazy.invalidate(goog_bp1.session, "token")
         google.get("https://google.com")
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer app1"
 
     with app2.test_request_context("/"):
         app2.preprocess_request()
-        lazy.invalidate(goog_bp2.session, "token")
         google.get("https://google.com")
         request = responses.calls[1].request
         assert request.headers["Authorization"] == "Bearer app2"

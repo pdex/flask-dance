@@ -2,7 +2,7 @@ from __future__ import unicode_literals, print_function
 
 import six
 from lazy import lazy
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractproperty
 from distutils.version import StrictVersion
 import flask
 from flask.signals import Namespace
@@ -100,6 +100,10 @@ class BaseOAuthConsumerBlueprint(six.with_metaclass(ABCMeta, flask.Blueprint)):
     def token(self):
         self.backend.delete(self)
         lazy.invalidate(self.session, "token")
+
+    @abstractproperty
+    def session(self):
+        raise NotImplementedError()
 
     @abstractmethod
     def login(self):

@@ -108,7 +108,7 @@ def test_sqla_backend_without_user(app, db, blueprint, request):
             assert resp.status_code == 302
             assert resp.headers["Location"] == "https://a.b.c/oauth_done"
 
-    assert len(queries) == 2
+    assert len(queries) == 3
 
     # check the database
     authorizations = OAuth.query.all()
@@ -185,7 +185,7 @@ def test_sqla_backend(app, db, blueprint, request):
             assert resp.status_code == 302
             assert resp.headers["Location"] == "https://a.b.c/oauth_done"
 
-    assert len(queries) == 3
+    assert len(queries) == 4
 
     # check the database
     alice = User.query.first()
@@ -319,7 +319,7 @@ def test_sqla_flask_login(app, db, blueprint, request):
             assert resp.status_code == 302
             assert resp.headers["Location"] == "https://a.b.c/oauth_done"
 
-    assert len(queries) == 4
+    assert len(queries) == 5
 
     # lets do it again, with Bob as the logged in user -- he gets a different token
     responses.reset()
@@ -426,7 +426,7 @@ def test_sqla_flask_login_anon_to_authed(app, db, blueprint, request):
             assert resp.status_code == 302
             assert resp.headers["Location"] == "https://a.b.c/oauth_done"
 
-    assert len(queries) == 5
+    assert len(queries) == 6
 
     # check the database
     users = User.query.all()
@@ -447,9 +447,6 @@ def test_sqla_flask_login_anon_to_authed(app, db, blueprint, request):
 
 
 def test_sqla_flask_login_preload_logged_in_user(app, db, blueprint, request):
-    # this SHOULDN'T be necessary -- need to debug test infrastructure
-    lazy.invalidate(blueprint.session, "token")
-
     # need a URL to hit, so that tokens will be loaded, but result is irrelevant
     responses.add(
         responses.GET,
@@ -503,9 +500,6 @@ def test_sqla_flask_login_preload_logged_in_user(app, db, blueprint, request):
         # now the flask-dance session should have Alice's token loaded
         assert blueprint.session.token == alice_token
 
-    # invalidate cache between runs
-    lazy.invalidate(blueprint.session, "token")
-
     with app.test_request_context("/"):
         # set bob as the logged in user
         login_user(bob)
@@ -514,17 +508,11 @@ def test_sqla_flask_login_preload_logged_in_user(app, db, blueprint, request):
         # now the flask-dance session should have Bob's token loaded
         assert blueprint.session.token == bob_token
 
-    # invalidate cache between runs
-    lazy.invalidate(blueprint.session, "token")
-
     with app.test_request_context("/"):
         # now let's try chuck
         login_user(chuck)
         blueprint.session.get("/noop")
         assert blueprint.session.token == None
-
-    # invalidate cache between runs
-    lazy.invalidate(blueprint.session, "token")
 
     with app.test_request_context("/"):
         # no one is logged in -- this is an anonymous user
@@ -609,7 +597,7 @@ def test_sqla_overwrite_token(app, db, blueprint, request):
             assert resp.status_code == 302
             assert resp.headers["Location"] == "https://a.b.c/oauth_done"
 
-    assert len(queries) == 2
+    assert len(queries) == 3
 
     # check that the database record was overwritten
     authorizations = OAuth.query.all()
@@ -652,7 +640,7 @@ def test_sqla_cache(app, db, blueprint, request):
             assert resp.status_code == 302
             assert resp.headers["Location"] == "https://a.b.c/oauth_done"
 
-    assert len(queries) == 2
+    assert len(queries) == 3
 
     expected_token = {
         "access_token": "foobar",

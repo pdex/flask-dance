@@ -1,6 +1,7 @@
 from __future__ import unicode_literals, print_function
 
 import logging
+from lazy import lazy
 import flask
 from flask import request, url_for, redirect
 from urlobject import URLObject
@@ -109,25 +110,20 @@ class OAuth2ConsumerBlueprint(BaseOAuthConsumerBlueprint):
             backend=backend,
         )
 
-        session_class = session_class or OAuth2Session
-        self.session = session_class(
-            client_id=client_id,
-            client=client,
-            auto_refresh_url=auto_refresh_url,
-            auto_refresh_kwargs=auto_refresh_kwargs,
-            scope=scope,
-            state=state,
-            blueprint=self,
-            base_url=base_url,
-            **kwargs
-        )
-        def token_updater(token):
-            self.token = token
-        self.session.token_updater = token_updater
+        self.base_url = base_url
+        self.session_class = session_class or OAuth2Session
 
-        self.client_secret = client_secret
+        # passed to OAuth2Session()
+        self.client_id = client_id
+        self.client = client
+        self.auto_refresh_url = auto_refresh_url
+        self.auto_refresh_kwargs = auto_refresh_kwargs
+        self.scope = scope
         self.state = state
+        self.kwargs = kwargs
+        self.client_secret = client_secret
 
+        # used by view functions
         self.authorization_url = authorization_url
         self.authorization_url_params = authorization_url_params or {}
         self.token_url = token_url
@@ -135,14 +131,28 @@ class OAuth2ConsumerBlueprint(BaseOAuthConsumerBlueprint):
         self.redirect_url = redirect_url
         self.redirect_to = redirect_to
 
-    @property
-    def client_id(self):
-        return self.session.client_id
+        self.teardown_app_request(self.teardown_session)
 
-    @client_id.setter
-    def client_id(self, value):
-        self.session.client_id = value
-        self.session._client.client_id = value
+    @lazy
+    def session(self):
+        ret = self.session_class(
+            client_id=self.client_id,
+            client=self.client,
+            auto_refresh_url=self.auto_refresh_url,
+            auto_refresh_kwargs=self.auto_refresh_kwargs,
+            scope=self.scope,
+            state=self.state,
+            blueprint=self,
+            base_url=self.base_url,
+            **self.kwargs
+        )
+        def token_updater(token):
+            self.token = token
+        ret.token_updater = token_updater
+        return ret
+
+    def teardown_session(self, exception=None):
+        lazy.invalidate(self, "session")
 
     def login(self):
         secure = request.is_secure or request.headers.get("X-Forwarded-Proto", "http") == "https"
